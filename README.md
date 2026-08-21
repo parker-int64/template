@@ -402,7 +402,7 @@ By default, the debian package is copied to '$HOME' folder, normally it's under 
 On your device, install the copied package with `apt` and replace the package file name with the one you copied:
 
 ```shell
-sudo apt install --no-install-recommends ./TemplateApp_0.2.0_m5stack1_arm64.deb
+sudo apt install --no-install-recommends ./TemplateApp_0.2.1_m5stack1_arm64.deb
 ```
 
 
@@ -446,15 +446,17 @@ The counter page uses direct keyboard shortcuts:
 
 ### Fonts and Assets
 
-Fonts are loaded at runtime through FreeType. Place development fonts in:
+Device builds use Noto Sans CJK Medium for the default bold text and Noto Sans CJK Regular for regular-weight text. They are loaded through FreeType from:
+
+```text
+/usr/share/fonts/opentype/noto/NotoSansCJK-Medium.ttc
+/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc
+```
+
+When either system font is unavailable, the UI falls back to LVGL's built-in Montserrat fonts. Desktop builds always use the fallback fonts. Runtime icon and other asset fonts remain under:
 
 ```text
 assets/fonts/
-```
-
-Installed deployments can place fonts in:
-
-```text
 /usr/share/<APP_NAME>/fonts/
 ```
 
@@ -476,7 +478,7 @@ Debian packages are produced with CPack and written to `dist/`. The package file
 Default example:
 
 ```text
-dist/TemplateApp_0.2.0_m5stack1_arm64.deb
+dist/TemplateApp_0.2.1_m5stack1_arm64.deb
 ```
 
 Package layout:

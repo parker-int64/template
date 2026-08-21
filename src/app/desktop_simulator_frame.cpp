@@ -10,6 +10,7 @@
 
 #include "asset_manager.h"
 #include "desktop_virtual_keypad.h"
+#include "linux_input.h"
 #include "logger.h"
 #include "theme.h"
 
@@ -57,6 +58,13 @@ uint32_t map_control_key(SDL_Keycode key) {
             return LV_KEY_HOME;
         case SDLK_END:
             return LV_KEY_END;
+        case SDLK_PRINTSCREEN:
+            return platform::kKeyPrintScreen;
+        case SDLK_HELP:
+            return platform::kKeyHelp;
+        case SDLK_4:
+        case SDLK_KP_4:
+            return '4';
         default:
             return 0;
     }
@@ -360,9 +368,15 @@ void DesktopSimulatorFrame::handle_event(const SDL_Event& event, bool& running) 
             encoder_diff_ = static_cast<int16_t>(-event.wheel.y);
             lv_indev_read(encoder_);
             return;
-        case SDL_KEYDOWN: {
+        case SDL_KEYDOWN:
+        case SDL_KEYUP: {
+            if (event.key.repeat) {
+                return;
+            }
             const auto control = map_control_key(event.key.keysym.sym);
-            if (control != 0) emit_physical_key(static_cast<int32_t>(control));
+            if (control != 0) {
+                emit_physical_key(static_cast<int32_t>(control), event.type == SDL_KEYDOWN);
+            }
             return;
         }
         case SDL_TEXTINPUT: {
@@ -373,7 +387,9 @@ void DesktopSimulatorFrame::handle_event(const SDL_Event& event, bool& running) 
                 std::copy_n(reinterpret_cast<const uint8_t*>(cursor),
                             std::min<uint32_t>(length, sizeof(key)),
                             reinterpret_cast<uint8_t*>(&key));
-                emit_physical_key(static_cast<int32_t>(key));
+                if (keypad_ && key != '4') {
+                    keypad_->emit_key(key);
+                }
                 cursor += length;
             }
             return;
@@ -397,9 +413,9 @@ void DesktopSimulatorFrame::update_pointer(int32_t window_x, int32_t window_y, b
     lv_indev_read(pointer_);
 }
 
-void DesktopSimulatorFrame::emit_physical_key(int32_t key) {
+void DesktopSimulatorFrame::emit_physical_key(int32_t key, bool pressed) {
     if (keypad_) {
-        keypad_->emit_key(static_cast<uint32_t>(key));
+        keypad_->emit_key_state(static_cast<uint32_t>(key), pressed);
     }
 }
 

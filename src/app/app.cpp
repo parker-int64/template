@@ -8,14 +8,18 @@
 
 #include "application_config.h"
 #include "asset_manager.h"
+#include "help_popup.h"
 #include "logger.h"
 #include "linux_input.h"
+#include "screenshot_service.h"
 #include "screen_manager.h"
 #include "base_viewmodel.h"
 #include "theme.h"
+#include "toast.h"
 
 #include <cstdlib>
 #include <filesystem>
+#include <memory>
 #include <string>
 
 #if USE_DESKTOP
@@ -104,6 +108,132 @@ void persist_dark_mode_observer(lv_observer_t* observer, lv_subject_t* subject) 
     }
 }
 
+class ShortcutController {
+public:
+    ShortcutController(viewmodel::BaseViewModel& view_model, AssetManager& assets)
+        : view_model_(view_model),
+          toast_(std::make_unique<view::widgets::Toast>(lv_layer_top(), view_model, assets)),
+          help_popup_(std::make_unique<view::widgets::HelpPopup>(lv_layer_top(), view_model, assets)) {
+        toast_->build();
+        help_popup_->build();
+        platform::set_global_key_listener(global_key_listener, this);
+        platform::set_key_release_listener(key_release_listener, this);
+    }
+
+    ~ShortcutController() {
+        platform::clear_key_release_listener(key_release_listener, this);
+        platform::clear_global_key_listener(global_key_listener, this);
+    }
+
+private:
+    bool handle_key(uint32_t key, bool long_pressed) {
+        if (key == platform::kKeyPrintScreen) {
+            if (!long_pressed) {
+                const auto result = platform::screenshot::capture_active_screen();
+                if (result.success) {
+                    LOG_INFO("screenshot saved: {}", result.path);
+                    toast_->show_highlighted("Saved to ",
+                                             result.path,
+                                             "",
+                                             view::widgets::ToastTone::Success,
+                                             5200,
+                                             true);
+                }
+                else {
+                    LOG_WARN("screenshot failed: {}", result.error);
+                    toast_->show("Screenshot failed: " + result.error,
+                                 view::widgets::ToastTone::Error,
+                                 3200);
+                }
+            }
+            return true;
+        }
+
+        if (key == platform::kKeyHelp) {
+            if (!long_pressed) {
+                toast_->hide();
+                if (help_popup_->visible()) {
+                    help_popup_->hide();
+                }
+                else {
+                    help_popup_->show(view_model_.current_page());
+                }
+            }
+            return true;
+        }
+
+        if (help_popup_->visible()) {
+            if (key == LV_KEY_ESC && !long_pressed) {
+                help_popup_->hide();
+            }
+            return true;
+        }
+
+        const bool is_escape = key == LV_KEY_ESC;
+        const bool is_home_exit_key =
+            key == '4' &&
+            ((!long_pressed && view_model_.current_page() == model::AppPage::Apple) ||
+             (long_pressed && exit_key_pressed_ == key));
+        if (!is_escape && !is_home_exit_key) {
+            return false;
+        }
+
+        if (long_pressed) {
+            if (exit_key_pressed_ == key && exit_armed_) {
+                toast_->hide();
+                view_model_.request_quit();
+            }
+        }
+        else {
+            exit_key_pressed_ = key;
+            exit_armed_ = view_model_.current_page() == model::AppPage::Apple;
+            if (exit_armed_) {
+                toast_->show_persistent_highlighted("Hold ",
+                                                    "ESC/4",
+                                                    " to Exit",
+                                                    view::widgets::ToastTone::Warning);
+            }
+        }
+        return true;
+    }
+
+    void handle_release(uint32_t key) {
+        if (key != exit_key_pressed_) {
+            return;
+        }
+
+        if (exit_armed_) {
+            toast_->hide();
+        } else if (key == LV_KEY_ESC &&
+                   view_model_.current_page() == model::AppPage::Butter) {
+            view_model_.show_apple_page();
+        }
+        exit_key_pressed_ = 0;
+        exit_armed_ = false;
+    }
+
+    static bool global_key_listener(uint32_t key,
+                                    const char*,
+                                    bool long_pressed,
+                                    void* user_data) {
+        auto* controller = static_cast<ShortcutController*>(user_data);
+        return controller && controller->handle_key(key, long_pressed);
+    }
+
+    static void key_release_listener(uint32_t key, const char*, void* user_data) {
+        auto* controller = static_cast<ShortcutController*>(user_data);
+        if (controller) {
+            controller->handle_release(key);
+        }
+    }
+
+    viewmodel::BaseViewModel& view_model_;
+    std::unique_ptr<view::widgets::Toast> toast_;
+    std::unique_ptr<view::widgets::HelpPopup> help_popup_;
+    uint32_t exit_key_pressed_{0};
+    bool exit_armed_{false};
+};
+
 #if !USE_DESKTOP
 lv_display_t* init_device_display() {
 #if APP_USE_DRM
@@ -181,7 +311,10 @@ int Application::run() {
         return 1;
     }
 
-    view::apply_lvgl_theme(display, view_model.is_dark_mode());
+    auto* standard_font = assets.load_standard_font(14);
+    view::apply_lvgl_theme(display,
+                           view_model.is_dark_mode(),
+                           standard_font ? standard_font : LV_FONT_DEFAULT);
 
 #if USE_DESKTOP
     simulator_frame.bind_dark_mode(view_model.dark_mode_subject());
@@ -189,6 +322,7 @@ int Application::run() {
 
     ScreenManager screen_manager(view_model, assets);
     screen_manager.start();
+    ShortcutController shortcuts(view_model, assets);
 
     DarkModePersistence dark_mode_persistence{user_config_path, view_model.is_dark_mode()};
     auto* dark_mode_observer = lv_subject_add_observer(view_model.dark_mode_subject(),

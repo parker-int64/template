@@ -40,6 +40,9 @@ namespace color {
 namespace light {
 constexpr uint32_t kPrimary      = 0x18a058;
 constexpr uint32_t kInfo         = 0x2080f0;
+constexpr uint32_t kSuccess      = 0x18a058;
+constexpr uint32_t kWarning      = 0xf0a020;
+constexpr uint32_t kError        = 0xd03050;
 constexpr uint32_t kBody         = 0xffffff;
 constexpr uint32_t kCard         = 0xffffff;
 constexpr uint32_t kAction       = 0xfafafc;
@@ -52,6 +55,9 @@ constexpr uint32_t kTextDisabled = 0xc2c2c2;
 namespace dark {
 constexpr uint32_t kPrimary      = 0x63e2b7;
 constexpr uint32_t kInfo         = 0x70c0e8;
+constexpr uint32_t kSuccess      = 0x63e2b7;
+constexpr uint32_t kWarning      = 0xf2c97d;
+constexpr uint32_t kError        = 0xe88080;
 constexpr uint32_t kBody         = 0x101014;
 constexpr uint32_t kCard         = 0x18181c;
 constexpr uint32_t kAction       = 0x0f0f0f;

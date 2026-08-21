@@ -87,11 +87,11 @@ void NavBar::create_shortcut_hints() {
     lv_obj_set_style_pad_hor(shortcut_bar_, 10, 0);
     lv_obj_clear_flag(shortcut_bar_, LV_OBJ_FLAG_SCROLLABLE);
 
-    const lv_font_t* key_font = assets_.load_font("inter-semibold.ttf", 14);
+    const lv_font_t* key_font = assets_.load_standard_font(14);
     if (!key_font) {
         key_font = &lv_font_montserrat_14;
     }
-    const lv_font_t* text_font = assets_.load_font("inter-regular.ttf", 14);
+    const lv_font_t* text_font = assets_.load_standard_font(14, app::StandardFontWeight::Regular);
     if (!text_font) {
         text_font = &lv_font_montserrat_14;
     }

@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 
 #if !USE_DESKTOP
@@ -25,6 +26,17 @@ std::array<lv_obj_t*, kNavKeyCount> nav_buttons{};
 uint32_t last_key = 0;
 bool last_key_pressed = false;
 bool nav_shortcut_mode = false;
+uint32_t pressed_key = 0;
+uint32_t press_started_at = 0;
+bool long_press_sent = false;
+bool pressed_key_consumed = false;
+lv_timer_t* long_press_timer = nullptr;
+KeyReleaseListener key_release_listener = nullptr;
+void* key_release_listener_user_data = nullptr;
+GlobalKeyListener global_key_listener = nullptr;
+void* global_key_listener_user_data = nullptr;
+
+constexpr uint32_t kLongPressMs = 700;
 
 #if !USE_DESKTOP
 struct EvdevKeypad {
@@ -86,6 +98,59 @@ void dispatch_nav_key(uint32_t key) {
     lv_obj_send_event(button, LV_EVENT_CLICKED, nullptr);
 }
 
+bool emit_global_key(uint32_t key, bool long_pressed) {
+    return global_key_listener &&
+           global_key_listener(key, describe_key(key), long_pressed, global_key_listener_user_data);
+}
+
+void long_press_timer_cb(lv_timer_t*) {
+    if (!pressed_key || long_press_sent || lv_tick_elaps(press_started_at) < kLongPressMs) {
+        return;
+    }
+
+    long_press_sent = true;
+    if (emit_global_key(pressed_key, true)) {
+        pressed_key_consumed = true;
+    }
+}
+
+void ensure_long_press_timer() {
+    if (!long_press_timer) {
+        long_press_timer = lv_timer_create(long_press_timer_cb, 40, nullptr);
+    }
+    if (long_press_timer) {
+        lv_timer_resume(long_press_timer);
+        lv_timer_reset(long_press_timer);
+    }
+}
+
+void route_key_state(uint32_t key, bool pressed) {
+    const bool new_hold = pressed && (!last_key_pressed || pressed_key != key);
+    if (new_hold) {
+        pressed_key = key;
+        press_started_at = lv_tick_get();
+        long_press_sent = false;
+        pressed_key_consumed = emit_global_key(key, false);
+        ensure_long_press_timer();
+        if (!pressed_key_consumed) {
+            dispatch_nav_key(key);
+        }
+    }
+    else if (!pressed && last_key_pressed && pressed_key == key) {
+        if (key_release_listener) {
+            key_release_listener(key, describe_key(key), key_release_listener_user_data);
+        }
+        pressed_key = 0;
+        pressed_key_consumed = false;
+        if (long_press_timer) {
+            lv_timer_pause(long_press_timer);
+        }
+    }
+
+    last_key = key;
+    last_key_pressed = pressed;
+}
+
 void key_event_cb(lv_event_t* event) {
     LV_UNUSED(event);
 
@@ -106,12 +171,7 @@ void key_event_cb(lv_event_t* event) {
         const auto key = keypad->router_key;
         const bool pressed = keypad->router_pressed;
 
-        if (pressed && (!last_key_pressed || last_key != key)) {
-            dispatch_nav_key(key);
-        }
-
-        last_key = key;
-        last_key_pressed = pressed;
+        route_key_state(key, pressed);
         return;
     }
 #endif
@@ -119,12 +179,7 @@ void key_event_cb(lv_event_t* event) {
     const auto key = lv_indev_get_key(indev);
     const bool pressed = lv_indev_get_state(indev) == LV_INDEV_STATE_PRESSED;
 
-    if (pressed && (!last_key_pressed || last_key != key)) {
-        dispatch_nav_key(key);
-    }
-
-    last_key = key;
-    last_key_pressed = pressed;
+    route_key_state(key, pressed);
 }
 
 #if !USE_DESKTOP
@@ -150,6 +205,10 @@ uint32_t map_evdev_key(uint16_t code) {
             return '7';
         case KEY_8:
             return '8';
+        case KEY_SYSRQ:
+            return kKeyPrintScreen;
+        case KEY_HELP:
+            return kKeyHelp;
         default:
             return 0;
     }
@@ -168,7 +227,7 @@ bool has_nav_keys(int fd) {
 
     return has_key(KEY_ESC) || has_key(KEY_LEFT) || has_key(KEY_RIGHT) || has_key(KEY_Z) ||
            has_key(KEY_C) || has_key(KEY_4) || has_key(KEY_5) || has_key(KEY_6) ||
-           has_key(KEY_7) || has_key(KEY_8);
+           has_key(KEY_7) || has_key(KEY_8) || has_key(KEY_SYSRQ) || has_key(KEY_HELP);
 }
 
 void evdev_read_cb(lv_indev_t* indev, lv_indev_data_t* data) {
@@ -326,6 +385,56 @@ void unregister_nav_button(size_t index, lv_obj_t* button) {
     if (!button || nav_buttons[index] == button) {
         nav_buttons[index] = nullptr;
     }
+}
+
+void set_key_release_listener(KeyReleaseListener listener, void* user_data) {
+    key_release_listener = listener;
+    key_release_listener_user_data = user_data;
+}
+
+void clear_key_release_listener(KeyReleaseListener listener, void* user_data) {
+    if (key_release_listener == listener && key_release_listener_user_data == user_data) {
+        key_release_listener = nullptr;
+        key_release_listener_user_data = nullptr;
+    }
+}
+
+void set_global_key_listener(GlobalKeyListener listener, void* user_data) {
+    global_key_listener = listener;
+    global_key_listener_user_data = user_data;
+}
+
+void clear_global_key_listener(GlobalKeyListener listener, void* user_data) {
+    if (global_key_listener == listener && global_key_listener_user_data == user_data) {
+        global_key_listener = nullptr;
+        global_key_listener_user_data = nullptr;
+    }
+}
+
+const char* describe_key(uint32_t key) {
+    switch (key) {
+        case LV_KEY_ESC:
+            return "Esc";
+        case LV_KEY_LEFT:
+            return "Left";
+        case LV_KEY_RIGHT:
+            return "Right";
+        case kKeyPrintScreen:
+            return "PrintScreen";
+        case kKeyHelp:
+            return "Help";
+        default:
+            break;
+    }
+
+    static char buffer[24];
+    if (key >= 32 && key <= 126) {
+        std::snprintf(buffer, sizeof(buffer), "%c", static_cast<char>(key));
+    }
+    else {
+        std::snprintf(buffer, sizeof(buffer), "Key_%u", key);
+    }
+    return buffer;
 }
 
 } // namespace platform

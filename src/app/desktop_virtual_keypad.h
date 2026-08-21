@@ -26,6 +26,7 @@ public:
 
     bool handle_pointer(int32_t x, int32_t y, bool pressed);
     void emit_key(uint32_t key);
+    void emit_key_state(uint32_t key, bool pressed);
     void render(SDL_Renderer* renderer) const;
 
 private:
@@ -44,11 +45,12 @@ private:
     lv_group_t* group_{nullptr};
     lv_group_t* previous_default_group_{nullptr};
     uint32_t pending_key_{0};
-    bool pending_release_{false};
+    bool pending_pressed_{false};
     bool fn_active_{false};
     bool ctrl_active_{false};
     bool alt_active_{false};
     int16_t pressed_key_{-1};
+    uint32_t held_pointer_key_{0};
     Mode mode_{Mode::Base};
 };
 

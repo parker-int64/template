@@ -16,6 +16,11 @@
 
 namespace app {
 
+enum class StandardFontWeight {
+    Regular,
+    Bold,
+};
+
 class AssetManager {
 public:
     explicit AssetManager(std::string app_name = default_app_name(),
@@ -33,6 +38,8 @@ public:
     std::filesystem::path resolve_font(const std::filesystem::path& file_name) const;
 
     lv_font_t* load_font(const std::filesystem::path& file_name, uint32_t size);
+    lv_font_t* load_standard_font(uint32_t size,
+                                  StandardFontWeight weight = StandardFontWeight::Bold);
 
 private:
     struct LoadedFont;

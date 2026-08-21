@@ -53,7 +53,7 @@ private:
     SDL_Texture* load_png_texture(const char* path);
     void handle_event(const SDL_Event& event, bool& running);
     void update_pointer(int32_t window_x, int32_t window_y, bool pressed);
-    void emit_physical_key(int32_t sdl_key);
+    void emit_physical_key(int32_t sdl_key, bool pressed);
     void render();
     void set_dark_mode(bool dark_mode);
 

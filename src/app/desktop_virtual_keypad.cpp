@@ -192,9 +192,9 @@ uint32_t fn_key_for(char key) {
         case 'f':
             return LV_KEY_UP;
         case 'h':
-            return SDLK_HELP;
+            return platform::kKeyHelp;
         case 'j':
-            return SDLK_PRINTSCREEN;
+            return platform::kKeyPrintScreen;
         case 'k':
             return LV_KEY_HOME;
         case 'l':
@@ -284,9 +284,9 @@ std::string output_key_name(uint32_t key) {
             return "brightness-down";
         case SDLK_BRIGHTNESSUP:
             return "brightness-up";
-        case SDLK_HELP:
+        case platform::kKeyHelp:
             return "help";
-        case SDLK_PRINTSCREEN:
+        case platform::kKeyPrintScreen:
             return "print-screen";
         case SDLK_INSERT:
             return "insert";
@@ -367,19 +367,37 @@ void DesktopVirtualKeypad::read_cb(lv_indev_t* indev, lv_indev_data_t* data) {
     }
 
     data->key = keypad->pending_key_;
-    data->state = keypad->pending_release_ ? LV_INDEV_STATE_RELEASED : LV_INDEV_STATE_PRESSED;
+    data->state = keypad->pending_pressed_ ? LV_INDEV_STATE_PRESSED : LV_INDEV_STATE_RELEASED;
 }
 
 bool DesktopVirtualKeypad::handle_pointer(int32_t x, int32_t y, bool pressed) {
     const auto hit = key_at(x, y);
     if (pressed) {
         pressed_key_ = hit;
+        if (hit == kEscapeKeyIndex) {
+            emit_key_state(LV_KEY_ESC, true);
+        }
+        else if (hit >= 0 && static_cast<size_t>(hit) < kMatrixKeyCount &&
+                 kKeys[static_cast<size_t>(hit)].kind == KeyKind::Character &&
+                 kKeys[static_cast<size_t>(hit)].base == '4' && mode_ == Mode::Base &&
+                 !fn_active_ && !ctrl_active_ && !alt_active_) {
+            held_pointer_key_ = '4';
+            emit_key_state(held_pointer_key_, true);
+        }
         return hit >= 0;
     }
 
     const auto activated = pressed_key_ >= 0 && pressed_key_ == hit;
+    const auto released_key = pressed_key_;
     pressed_key_ = -1;
-    if (activated) {
+    if (released_key == kEscapeKeyIndex) {
+        emit_key_state(LV_KEY_ESC, false);
+    }
+    else if (held_pointer_key_ != 0) {
+        emit_key_state(held_pointer_key_, false);
+        held_pointer_key_ = 0;
+    }
+    else if (activated) {
         handle_key(static_cast<uint8_t>(hit));
     }
     return activated || hit >= 0;
@@ -504,13 +522,21 @@ void DesktopVirtualKeypad::emit_key(uint32_t key) {
         return;
     }
 
+    emit_key_state(key, true);
+    emit_key_state(key, false);
+}
+
+void DesktopVirtualKeypad::emit_key_state(uint32_t key, bool pressed) {
+    if (!indev_ || key == 0) {
+        return;
+    }
+
     pending_key_ = key;
-    pending_release_ = false;
+    pending_pressed_ = pressed;
     lv_indev_read(indev_);
-    pending_release_ = true;
-    lv_indev_read(indev_);
-    pending_key_ = 0;
-    pending_release_ = false;
+    if (!pressed) {
+        pending_key_ = 0;
+    }
 }
 
 void DesktopVirtualKeypad::set_mode(Mode mode) {

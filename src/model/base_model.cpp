@@ -32,6 +32,7 @@ AppPage BaseModel::current_page() const {
     return current_page_;
 }
 
+
 void BaseModel::set_current_page(AppPage page) {
     current_page_ = page;
 }

@@ -90,10 +90,12 @@
  *====================*/
 
 #define LV_USE_FREETYPE                    1
+#define LV_USE_SNAPSHOT                    1
 #define LV_FREETYPE_CACHE_FT_GLYPH_CNT     256
 
 #define LV_USE_TINY_TTF                    0
 
+#define LV_FONT_MONTSERRAT_10              1
 #define LV_FONT_MONTSERRAT_12              1
 #define LV_FONT_MONTSERRAT_14              1
 #define LV_FONT_MONTSERRAT_16              1
@@ -101,6 +103,7 @@
 #define LV_FONT_MONTSERRAT_20              1
 #define LV_FONT_MONTSERRAT_24              1
 #define LV_FONT_MONTSERRAT_28              1
+#define LV_USE_FONT_PLACEHOLDER            1
 
 /*====================
    IMAGES

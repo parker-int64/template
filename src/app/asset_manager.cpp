@@ -30,6 +30,13 @@
 namespace app {
 namespace {
 
+#if !USE_DESKTOP
+constexpr const char* kNotoSansCjkRegular =
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc";
+constexpr const char* kNotoSansCjkBold =
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Medium.ttc";
+#endif
+
 bool path_exists(const std::filesystem::path& path) {
     std::error_code ec;
     return std::filesystem::exists(path, ec);
@@ -40,6 +47,33 @@ std::filesystem::path weakly_canonical_path(const std::filesystem::path& path) {
     auto canonical = std::filesystem::weakly_canonical(path, ec);
     return ec ? path.lexically_normal() : canonical;
 }
+
+#if !USE_DESKTOP
+const lv_font_t* fallback_font(uint32_t size) {
+    if (size <= 10) {
+        return &lv_font_montserrat_10;
+    }
+    if (size <= 12) {
+        return &lv_font_montserrat_12;
+    }
+    if (size <= 14) {
+        return &lv_font_montserrat_14;
+    }
+    if (size <= 16) {
+        return &lv_font_montserrat_16;
+    }
+    if (size <= 18) {
+        return &lv_font_montserrat_18;
+    }
+    if (size <= 20) {
+        return &lv_font_montserrat_20;
+    }
+    if (size <= 24) {
+        return &lv_font_montserrat_24;
+    }
+    return &lv_font_montserrat_28;
+}
+#endif
 
 } // namespace
 
@@ -130,6 +164,23 @@ lv_font_t* AssetManager::load_font(const std::filesystem::path& file_name, uint3
     LV_UNUSED(size);
     LOG_WARN("FreeType font loading requested but LV_USE_FREETYPE is disabled");
     return nullptr;
+#endif
+}
+
+lv_font_t* AssetManager::load_standard_font(uint32_t size, StandardFontWeight weight) {
+#if USE_DESKTOP
+    LV_UNUSED(size);
+    LV_UNUSED(weight);
+    return nullptr;
+#else
+    const char* path = weight == StandardFontWeight::Regular
+                           ? kNotoSansCjkRegular
+                           : kNotoSansCjkBold;
+    auto* font = load_font(path, size);
+    if (font) {
+        font->fallback = fallback_font(size);
+    }
+    return font;
 #endif
 }
 
