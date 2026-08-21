@@ -120,7 +120,7 @@ void HelpPopup::build() {
     auto* footer_font = assets_.load_standard_font(10);
     lv_obj_set_style_text_font(footer_, footer_font ? footer_font : &lv_font_montserrat_10, 0);
     lv_obj_set_style_text_align(footer_, LV_TEXT_ALIGN_LEFT, 0);
-    lv_obj_set_size(footer_, 268, 12);
+    lv_obj_set_size(footer_, LV_SIZE_CONTENT, 12);
     lv_obj_align(footer_, LV_ALIGN_BOTTOM_LEFT, 12, -7);
 
     lv_subject_add_observer_obj(view_model_.dark_mode_subject(),
