@@ -1,27 +1,34 @@
 {
   "app_name": "Template",
   "package_name": "template_app",
-  "icon": "assets/images/template.png",
   "version": "0.2.1",
-  "screenshots": ["screenshot/app-simulator-dark-darwin.png", "screenshot/app-simulator-light-darwin.png"],
-  "description": {
-    "en": "Template Application for CardputerZero",
-    "ja": "CardputerZero のテンプレートアプリ",
-    "zh-CN": "CardputerZero 的模板应用"
-  },
-  "categories": ["Category1", "Category2"],
-  "permissions": {
-    "camera": false,
-    "microphone": false,
-    "imu": false,
-    "network": false,
-    "additional_hardware": false,
-    "background_service": false,
-    "external_display": false
-  },
-  "author": "M5Stack",
-  "author_mail": "support@m5stack.com",
-  "source_repo": "https://github.com/CardputerZero/FactoryTest",
-  "license": "MIT",
-  "share_code": "TEMP"
+  "description": "Template Application for CardputerZero",
+
+  "store": {
+    "summary": "Template Application for CardputerZero",
+    "description": "A starting point for building CardputerZero apps. Replace this text with what your app does.",
+    "locales": {
+      "ja": { "summary": "CardputerZero のテンプレートアプリ" },
+      "zh-CN": { "summary": "CardputerZero 的模板应用" }
+    },
+    "categories": ["Development"],
+    "screenshots": [
+      "screenshot/app-simulator-dark-darwin.png",
+      "screenshot/app-simulator-light-darwin.png"
+    ],
+    "icon": "assets/images/template.png",
+    "license": "MIT",
+    "source_repo": "https://github.com/CardputerZero/Template",
+    "author": { "github": "your-github-login", "display_name": "Your Name" },
+    "share_code": "TEMP",
+    "permissions": {
+      "camera": false,
+      "microphone": false,
+      "imu": false,
+      "network": false,
+      "additional_hardware": false,
+      "background_service": false,
+      "external_display": false
+    }
+  }
 }

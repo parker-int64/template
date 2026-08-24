@@ -40,8 +40,9 @@ Do not force one spelling onto every surface. Resolve the intended value for eac
 
 ### Upload contract
 
-- `app-builder.json`: package name, app name, version, icon, screenshots, descriptions,
-  categories, permissions, author, source repository, license, and share code.
+- `app-builder.json`: package name, app name, version at the top level, plus the nested `store`
+  object (summary, locales, icon, screenshots, categories, permissions, author, source
+  repository, license, and share code).
 - Treat this file as final package/upload metadata. Do not use it to drive source architecture or
   silently rewrite it during ordinary feature work.
 

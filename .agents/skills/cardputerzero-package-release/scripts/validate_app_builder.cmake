@@ -52,28 +52,43 @@ else()
     set(cmake_project_version "${CMAKE_MATCH_2}")
 endif()
 
+# Top-level packaging fields, plus the "store" section that czdev publish and
+# the store's CI validate (see AppBuilder docs/APP_BUILDER_JSON.md).
 foreach(required_field IN ITEMS
         app_name
         package_name
         version
-        icon
-        description
-        categories
-        permissions
-        author
-        author_mail
-        source_repo
-        license
-        share_code)
+        store)
     string(JSON field_type ERROR_VARIABLE field_error TYPE "${app_builder_json}" "${required_field}")
     if(NOT field_error STREQUAL "NOTFOUND")
         add_validation_error("Required field '${required_field}' is missing")
     endif()
 endforeach()
 
+foreach(required_field IN ITEMS
+        summary
+        categories
+        screenshots
+        icon
+        license
+        source_repo
+        author
+        share_code
+        permissions)
+    string(JSON field_type ERROR_VARIABLE field_error TYPE "${app_builder_json}" store "${required_field}")
+    if(NOT field_error STREQUAL "NOTFOUND")
+        add_validation_error("Required field 'store.${required_field}' is missing")
+    endif()
+endforeach()
+
+string(JSON author_name_type ERROR_VARIABLE author_name_error TYPE "${app_builder_json}" store author display_name)
+if(NOT author_name_error STREQUAL "NOTFOUND")
+    add_validation_error("Required field 'store.author.display_name' is missing")
+endif()
+
 json_get(manifest_package_name package_name)
 json_get(manifest_version version)
-json_get(manifest_icon icon)
+json_get(manifest_icon store icon)
 
 if(DEFINED cmake_project_name AND
    NOT manifest_package_name STREQUAL cmake_project_name)
@@ -98,15 +113,15 @@ if(manifest_icon STREQUAL "" OR NOT EXISTS "${manifest_icon_path}")
     add_validation_error("Icon does not exist: ${manifest_icon}")
 endif()
 
-string(JSON screenshot_count ERROR_VARIABLE screenshot_error LENGTH "${app_builder_json}" screenshots)
+string(JSON screenshot_count ERROR_VARIABLE screenshot_error LENGTH "${app_builder_json}" store screenshots)
 if(NOT screenshot_error STREQUAL "NOTFOUND")
-    add_validation_error("screenshots must be an array")
+    add_validation_error("store.screenshots must be an array")
 elseif(screenshot_count LESS 1)
-    add_validation_error("screenshots must contain at least one file")
+    add_validation_error("store.screenshots must contain at least one file")
 else()
     math(EXPR screenshot_last "${screenshot_count} - 1")
     foreach(index RANGE 0 ${screenshot_last})
-        json_get(screenshot_path screenshots ${index})
+        json_get(screenshot_path store screenshots ${index})
         if(IS_ABSOLUTE "${screenshot_path}")
             set(screenshot_absolute "${screenshot_path}")
         else()
@@ -118,9 +133,11 @@ else()
     endforeach()
 endif()
 
-string(JSON category_count ERROR_VARIABLE category_error LENGTH "${app_builder_json}" categories)
+string(JSON category_count ERROR_VARIABLE category_error LENGTH "${app_builder_json}" store categories)
 if(NOT category_error STREQUAL "NOTFOUND" OR category_count LESS 1)
-    add_validation_error("categories must be a non-empty array")
+    add_validation_error("store.categories must be a non-empty array")
+elseif(category_count GREATER 2)
+    add_validation_error("store.categories must contain at most 2 entries")
 endif()
 
 foreach(permission IN ITEMS
@@ -134,12 +151,12 @@ foreach(permission IN ITEMS
     string(
         JSON permission_type
         ERROR_VARIABLE permission_error
-        TYPE "${app_builder_json}" permissions "${permission}"
+        TYPE "${app_builder_json}" store permissions "${permission}"
     )
     if(NOT permission_error STREQUAL "NOTFOUND")
-        add_validation_error("Permission '${permission}' is missing")
+        add_validation_error("Permission 'store.permissions.${permission}' is missing")
     elseif(NOT permission_type STREQUAL "BOOLEAN")
-        add_validation_error("Permission '${permission}' must be boolean")
+        add_validation_error("Permission 'store.permissions.${permission}' must be boolean")
     endif()
 endforeach()
 

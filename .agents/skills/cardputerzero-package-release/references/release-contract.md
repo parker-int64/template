@@ -15,20 +15,26 @@ upload/store contract. Neither replaces the other.
 
 ## Current app-builder.json Fields
 
+Store-facing metadata lives in the nested `store` object; the top level keeps
+packaging identity only. This matches what `czdev publish` uploads and what
+the store's CI validates.
+
 | Field | Release rule |
 | --- | --- |
-| `app_name` | User-facing app name. |
-| `package_name` | Stable upload/application identifier; currently expected to match the CMake project name. |
+| `app_name` | User-facing app name; becomes the store display title. |
+| `package_name` | Stable upload/application identifier; currently expected to match the CMake project name. Must be a valid Debian package name when published (lowercase letters, digits, `.+-`). |
 | `version` | Must match `project(... VERSION ...)`. |
-| `icon` | Repository-relative file that must exist. |
-| `screenshots` | Non-empty repository-relative list; every file must exist. |
-| `description` | Localized upload descriptions. |
-| `categories` | Non-empty upload categories. |
-| `permissions` | Boolean declarations for shipped behavior, not driver enablement. |
-| `author`, `author_mail` | Release ownership metadata. |
-| `source_repo` | Actual source repository for this application. |
-| `license` | Project distribution license. |
-| `share_code` | Upload-system value; do not invent or rotate it. |
+| `store.summary` | One-line store summary (required). |
+| `store.description` | Longer store description (optional). |
+| `store.locales` | Localized `summary`/`description` overrides keyed by locale, e.g. `ja`, `zh-CN` (optional). |
+| `store.icon` | Repository-relative square PNG, 128–512 px (256×256 recommended); must exist. |
+| `store.screenshots` | Non-empty repository-relative list of 320×170 PNGs; every file must exist. |
+| `store.categories` | 1–2 entries from the store category enum (see AppBuilder `docs/APP_BUILDER_JSON.md`). |
+| `store.permissions` | All seven boolean keys declaring shipped behavior, not driver enablement. |
+| `store.author` | Object with required `display_name`; `github`, `email`, `website` optional. |
+| `store.source_repo` | Actual source repository for this application. |
+| `store.license` | SPDX license identifier (e.g. `MIT`, `GPL-3.0-only`). |
+| `store.share_code` | 4-char A–Z/0–9 code, globally unique in the store; do not invent or rotate it after first publish. |
 
 The current permission keys are `camera`, `microphone`, `imu`, `network`,
 `additional_hardware`, `background_service`, and `external_display`.
