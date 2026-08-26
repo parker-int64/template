@@ -5,22 +5,18 @@
   "description": "Template Application for CardputerZero",
 
   "store": {
-    "summary": "Template Application for CardputerZero",
-    "description": "A starting point for building CardputerZero apps. Replace this text with what your app does.",
-    "locales": {
-      "ja": { "summary": "CardputerZero のテンプレートアプリ" },
-      "zh-CN": { "summary": "CardputerZero 的模板应用" }
-    },
-    "categories": ["Development"],
+    "summary": "TODO: one line about your app (placeholders are auto-rejected)",
+    "description": "TODO: a longer description for the store detail page. Every TODO field in this store section must be replaced before publishing — the store validator rejects unedited template metadata.",
+    "categories": ["TODO: pick 1-2 real categories from docs/APP_BUILDER_JSON.md"],
     "screenshots": [
       "screenshot/app-simulator-dark-darwin.png",
       "screenshot/app-simulator-light-darwin.png"
     ],
     "icon": "assets/images/template.png",
-    "license": "MIT",
+    "license": "TODO: an SPDX id, e.g. MIT",
     "source_repo": "https://github.com/CardputerZero/Template",
-    "author": { "github": "your-github-login", "display_name": "Your Name" },
-    "share_code": "TEMP",
+    "author": { "github": "TODO-your-github-login", "display_name": "TODO: Your Name" },
+    "share_code": "TODO",
     "permissions": {
       "camera": false,
       "microphone": false,

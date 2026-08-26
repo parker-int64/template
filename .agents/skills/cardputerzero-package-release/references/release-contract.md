@@ -39,6 +39,11 @@ the store's CI validates.
 The current permission keys are `camera`, `microphone`, `imu`, `network`,
 `additional_hardware`, `background_service`, and `external_display`.
 
+The template ships deliberately invalid `TODO:` placeholders in the `store`
+section and a placeholder `APP_MAINTAINER` in `cmake/cm0-package.cmake`. The
+store validator auto-rejects unedited placeholders (including any M5Stack
+identity), so every one of them must be replaced before publishing.
+
 ## Permission Mapping
 
 - Camera capture: `camera`.
